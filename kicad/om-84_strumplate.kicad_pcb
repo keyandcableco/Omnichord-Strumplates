@@ -1860,7 +1860,7 @@
 		(layer "User.1")
 		(uuid "cf259423-6c8e-4e15-805f-584aa9c0889d")
 	)
-	(gr_text "Add Stiffener Here\n8.5mm x 21.5mm\nStiffener: Polyimide\nTotal Thickness: 0.6mm"
+	(gr_text "Add Stiffener Here\n8.5mm x 21.5mm\nStiffener: Polyimide\nTotal Thickness (Gold Finger): 0.3mm"
 		(at 78.6 166.84 0)
 		(layer "User.1")
 		(uuid "cb8c6f3a-4110-4dd0-945e-897cb833e249")
