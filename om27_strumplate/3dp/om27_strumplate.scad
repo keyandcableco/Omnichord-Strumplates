@@ -23,44 +23,67 @@
 // measurements -- nothing else needs to change.
 // ============================================================
 
-/* [Overall plate -- asymmetric trapezoid with an S-curved top edge] */
+/* [Overall plate -- asymmetric trapezoid with a curved top edge] */
 // The two LONG edges (left & right) are PARALLEL to each other and are
 // the sides the long valley recess runs alongside. The two SHORT edges
 // (top & bottom) connect them and are NOT parallel to each other.
 // The TOP short edge (opposite the pad cluster, which is mirrored to
-// sit near the bottom in the 3D assembly below) is not straight -- it's
-// a smooth S-curve built from a cubic Bezier with two INDEPENDENTLY
-// tunable control points, so the two lobes (peaks/valleys) of the S no
-// longer have to mirror each other.
+// sit near the bottom in the 3D assembly below) is not straight.
 edge_left_long   = 159;  // length of the long left edge, mm
-edge_right_long  = 139;  // length of the long right edge, mm
-edge_top_short   = 62;   // length of the short top edge, mm (straight-line/chord distance
-                          // between TL and TR -- the S-curve deviates from this)
+edge_right_long  = 142;  // length of the long right edge, mm
+edge_top_short   = 63;   // length of the short top edge, mm (straight-line/chord distance
+                          // between TL and TR -- the curve deviates from this)
 edge_bottom_short = 62;  // length of the short bottom edge, mm (straight)
-corner_radius     = 1.75; // small rounding at all four corners (just enough to not be knife-sharp)
+corner_radius     = 1.5; // small rounding at all four corners (just enough to not be knife-sharp)
 
-// --- S-curve control points (independent left/right lobes) ---
-// The curve is a cubic Bezier from TL to TR:
-//   P0 = TL
-//   P1 = TL + t1*chord + outward_dir * ctrl1_offset   (controls the LEFT lobe)
-//   P2 = TL + t2*chord + outward_dir * ctrl2_offset   (controls the RIGHT lobe)
-//   P3 = TR
-// where "outward_dir" points away from the plate body (so a POSITIVE
-// offset bulges OUT, a NEGATIVE offset dips IN).
-//
-// IMPORTANT -- these are CONTROL POINT offsets, not the final realized
-// peak deviation of the curve. A cubic Bezier always pulls the curve back
-// toward its endpoints, so the actual peak bulge/dip you see will be
-// noticeably SMALLER than these numbers (very roughly 30-45% of the
-// control offset for typical t1/t2 values below, but the two lobes
-// interact with each other, so there's no single exact conversion
-// factor when they're independent -- nudge the numbers and re-render
-// to dial in the look, rather than solving for an exact target).
-scurve_t1          = 0.63;  // 0-1, position of the LEFT control point along the chord
-scurve_ctrl1_offset = -4.5;    // mm, LEFT lobe control offset (+ = bulges out, - = dips in)
-scurve_t2          = 0.33;  // 0-1, position of the RIGHT control point along the chord
-scurve_ctrl2_offset = 0.5;  // mm, RIGHT lobe control offset (+ = bulges out, - = dips in)
-scurve_resolution   = 40;   // number of segments used to sample the curve (higher = smoother)
+// --- Top edge curve: direct, editable point list ---
+// Each entry is [t, dev]:
+//   t   = position along the TL->TR chord, 0 = TL, 1 = TR
+//   dev = perpendicular deviation from the straight chord, in mm
+//         (POSITIVE = bulges OUT away from the plate body, NEGATIVE = dips IN)
+// The curve is built by linearly interpolating between these points in
+// order, so each point's effect is LOCAL -- nudge one [t, dev] pair and
+// only the curve segments touching it move, unlike a Bezier where every
+// control point affects the whole shape. Add more points for finer
+// control anywhere you need it; t doesn't need to be evenly spaced.
+// The first point should be [0, 0] (note: this curve doesn't return to
+// 0 at t=1 -- it settles at -0.75, which is fine, just means TR sits
+// slightly inset from the literal corner; t=1 is still anchored to TR
+// in the construction below regardless of the dev value there).
+// These points follow your last set (the ones that got close), just
+// resampled to a finer 0.05 step using smooth monotone interpolation
+// (PCHIP -- passes through your original points exactly, no
+// overshoot/ringing introduced in between) so you have more individual
+// handles to nudge.
+TOP_CURVE_PTS = [
+    [0.00, 0.0],
+    [0.05, -0.531],
+    [0.10, -0.9],
+    [0.15, -1.2],
+    [0.20, -1.45],
+    [0.25, -1.75],
+    [0.30, -1.8],
+    [0.35, -1.8],
+    [0.40, -1.9],
+    [0.45, -1.8],
+    [0.50, -1.75],
+    [0.55, -1.521],
+    [0.60, -1.25],
+    [0.65, -1.15],
+    [0.70, -1],
+    [0.75, -1],
+    [0.80, -0.9],
+    [0.85, -1],
+    [0.90, -1],
+    [0.95, -1],
+    [1.00, -1.25],
+];
+top_curve_resolution = 6; // segments to interpolate BETWEEN each pair of points
+                          // (higher = smoother straight-line approximation of
+                          // whatever shape you build with the points above;
+                          // since interpolation is linear, this mostly just
+                          // affects corner_radius rounding smoothness, not
+                          // the underlying shape)
 
 // --- Derived corner geometry (do not edit) ---
 // Solve for the perpendicular distance `plate_w` between the two parallel
@@ -150,34 +173,43 @@ $fn = 60;
 // ============================================================
 
 // Asymmetric trapezoid plate outline: long left edge and long right
-// edge are parallel; short bottom edge is straight; short TOP edge is
-// a cubic-Bezier S-curve with two independently tunable control points
-// (see scurve_* parameters above), built from the solved corner points
-// BL/TL/BR/TR, with small corner rounding applied at the end.
-function _bezier(t, P0,P1,P2,P3) =
-    pow(1-t,3)*P0 + 3*pow(1-t,2)*t*P1 + 3*(1-t)*pow(t,2)*P2 + pow(t,3)*P3;
-
+// edge are parallel; short bottom edge is straight; short TOP edge
+// follows TOP_CURVE_PTS (see PARAMETERS above), projected onto the
+// real TL-TR chord and linearly interpolated point-to-point, built
+// from the solved corner points BL/TL/BR/TR, with small corner
+// rounding applied at the end.
 module plate_solid_2d() {
     chord = TR - TL;
     chord_len = norm(chord);
     u = chord / chord_len;
     perp = [u.y, -u.x];
     plate_center_dir = ((BL + BR) / 2) - (TL + TR) / 2;
-    // outward_dir points AWAY from the plate body (so + offsets bulge out)
+    // outward_dir points AWAY from the plate body (so + dev bulges out)
     outward_dir = (perp.x*plate_center_dir.x + perp.y*plate_center_dir.y > 0) ? -perp : perp;
 
-    P0 = TL;
-    P1 = TL + scurve_t1*chord + outward_dir*scurve_ctrl1_offset;
-    P2 = TL + scurve_t2*chord + outward_dir*scurve_ctrl2_offset;
-    P3 = TR;
-
-    N = scurve_resolution;
-    // sampled TL -> TR; reversed below for correct polygon winding
-    top_curve_TL_to_TR = [
-        for (i = [0:N])
-            _bezier(i/N, P0, P1, P2, P3)
+    // project each [t, dev] point onto the real chord
+    anchor_pts = [
+        for (pair = TOP_CURVE_PTS)
+            TL + pair[0]*chord + outward_dir*pair[1]
     ];
-    top_curve_pts = [for (i = [N:-1:0]) top_curve_TL_to_TR[i]]; // TR -> ... -> TL
+
+    // linearly interpolate top_curve_resolution extra points between each
+    // consecutive pair of anchors, so corner_radius rounding (which acts
+    // on every vertex) has more, closer-together points to round smoothly
+    // rather than just the handful of anchors themselves
+    n_anchors = len(anchor_pts);
+    top_curve_TL_to_TR = [
+        for (seg = [0 : n_anchors - 2])
+            for (k = [0 : top_curve_resolution - 1])
+                let(
+                    a = anchor_pts[seg],
+                    b = anchor_pts[seg + 1],
+                    f = k / top_curve_resolution
+                )
+                a + (b - a) * f
+    ];
+    top_curve_TL_to_TR_full = concat(top_curve_TL_to_TR, [anchor_pts[n_anchors - 1]]);
+    top_curve_pts = [for (i = [len(top_curve_TL_to_TR_full)-1:-1:0]) top_curve_TL_to_TR_full[i]]; // TR -> ... -> TL
 
     offset(r = corner_radius)
         offset(delta = -corner_radius)
