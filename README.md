@@ -58,3 +58,18 @@ Feel free to open issues or pull requests if you want to contribute.
 ---
 
 Any feedback or suggestions on the README itself is also welcome.
+
+## License
+
+Copyright © 2026 Greg Miller / The Key & Cable Company.
+
+The strumplate designs (KiCad files, Gerbers, OpenSCAD models and artwork) are licensed under the [CERN Open Hardware Licence Version 2 – Strongly Reciprocal (CERN-OHL-S-2.0)](LICENSE). You can make, modify, sell and share hardware from them. If you share a modified design, or ship hardware made from one, you have to publish your design files under the same licence.
+
+Source location: <https://github.com/keyandcableco/Omnichord-Strumplates>
+
+Not covered, because they aren't ours to license:
+
+- `om84_strumplate/3dp/om84_strumplate_v2_flat.*` and `om84_strumplate_v2_raised.*`, contributed by [AJ-EPS](https://github.com/AJ-EPS). They remain theirs.
+- The photographs of the original Suzuki strumplate in `om84_strumplate/images/` (`Strum plate bottom + Trace plate top.jpg`, `Trace plate contact side.jpg`, `Trace plate top + Strum plate top.jpg`).
+
+Omnichord is a trademark of Suzuki; it is used here only to say what these parts fit.
