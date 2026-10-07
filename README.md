@@ -52,6 +52,8 @@ There are now SCAD and STL files in progress for both models. The curves aren't 
 - ~~Tighten up gold teeth pitch, insertion errors sometimes?~~ Done: OM-84 and OM-27 gold fingers are now on a uniform 1.25 mm pitch, centred on the tail
 - Perfect bottom curves of plates in SCAD
 - Build guide, compare conductive layer materials
+- Update OM-84 Kicad with full stiffener
+- Clean up left-side alignment of stiffener layer in OM-27. Edges, too.
 
 Feel free to open issues or pull requests if you want to contribute.
 

@@ -157,7 +157,7 @@ valley_end_radius = 3;    // corner rounding radius at the two short ends (small
 // and are distributed evenly along the valley's long axis at the note
 // pitch. They rise off the floor but stop short of the top face so the
 // contacts stay separated.
-om27_note_count   = 13;    // number of notes/contacts on the OM-27
+om27_note_count   = 12;    // number of notes/contacts on the OM-27
 // span used to distribute the bumps = the valley length minus the
 // rounded end caps and a small margin, so bumps stay off the curved ends
 bump_span         = valley_length - 2*valley_end_radius - 6;
@@ -170,6 +170,27 @@ bump_corner_r     = 1.0;   // rounding of each bump rectangle
 bump_height       = recess_depth - 0.5; // how far the bump rises off the valley floor
                                           // (stays below the top face by 0.25mm)
 
+/* [Button living hinge - a thinned moat around each bump] */
+// Each bump acts as a "button" over a flex-PCB contact. To let each
+// button deflect DOWNWARD on its own (instead of the whole skin flexing
+// as one sheet), a ring-shaped groove ("moat") is cut from the TOP
+// (valley floor) side around each bump. The skin under the moat is
+// thinned to hinge_thickness, forming a compliant living-hinge membrane
+// that isolates each button island while keeping the z=0 touch face
+// perfectly smooth (nothing is cut from the finger side).
+hinge_on          = true;  // master toggle for the button moats
+hinge_thickness   = 0.25;  // skin thickness remaining UNDER the moat, mm.
+                            // Thinner = more pliable but weaker / more fragile.
+                            // MUST be < bottom_skin_thickness (0.45).
+moat_width        = 0.55;   // radial width of the thinned ring around each bump, mm.
+                            // Wider = softer/longer hinge travel.
+moat_gap          = 0.4;   // small gap between the bump wall and the INNER edge
+                            // of the moat, so the moat doesn't undercut the bump
+                            // base (keeps the button island's full-thickness
+                            // footprint slightly larger than the bump itself).
+// derived: how deep the moat cuts below the valley floor to leave hinge_thickness
+moat_depth        = bottom_skin_thickness - hinge_thickness;
+
 /* [String markers - engraved into the z=0 touch face, one per bump] */
 // Small indicator engraved into the BOTTOM (finger) face, one aligned to
 // each bump, so the player can tell which "string" is which from the
@@ -179,7 +200,7 @@ marker_style       = "dot"; // "number" -> 1..N digits (uses text(), slower rend
                                  // "dot"    -> a small round dot
                                  // "dash"   -> a short line/dash
                                  // "none"   -> disable markers entirely
-marker_depth       = 0.3;   // how deep the marker is engraved into z=0, mm.
+marker_depth       = 0.15;   // how deep the marker is engraved into z=0, mm.
                              // MUST stay < bottom_skin_thickness (0.45) or it
                              // punches through the touch skin.
 marker_offset_x    = 0;     // offset of each marker from its bump CENTER along
@@ -213,7 +234,7 @@ octave_phase       = 0;     // shift which marker is first ringed. 0 = ring the
                              // 1st marker. 1 = start at the 2nd, etc. Counted in
                              // the SAME order as the printed numbers, so the ring
                              // follows "1, 4, 7..." regardless of marker_flip_180.
-octave_ring_r      = 3.5;   // outer radius of the ring (should clear the digit;
+octave_ring_r      = 4.2;   // outer radius of the ring (should clear the digit;
                              // ~ marker_text_size*0.8 is a good starting point)
 octave_ring_thick  = 0.8;   // wall thickness of the ring, mm
                              // (inner radius = octave_ring_r - octave_ring_thick)
@@ -327,6 +348,27 @@ module valley_bumps_2d() {
     for (i = [0 : om27_note_count - 1]) {
         translate([valley_x_center, bump_cy(i)])
             rounded_rect(bump_width, bump_length, bump_corner_r);
+    }
+}
+
+// One bump's rounded-rect outline, centered at origin (helper so the moat
+// can be built by offsetting the exact bump footprint).
+module bump_outline_2d() {
+    rounded_rect(bump_width, bump_length, bump_corner_r);
+}
+
+// Living-hinge moats: an annular (ring) groove around each bump. The
+// annulus outer edge = bump outline grown by (moat_gap + moat_width);
+// inner edge = bump outline grown by moat_gap. Cutting this ring down
+// from the valley floor thins the skin to hinge_thickness there, so each
+// button island can flex downward independently.
+module button_moats_2d() {
+    for (i = [0 : om27_note_count - 1]) {
+        translate([valley_x_center, bump_cy(i)])
+            difference() {
+                offset(r = moat_gap + moat_width) bump_outline_2d();
+                offset(r = moat_gap)              bump_outline_2d();
+            }
     }
 }
 
@@ -457,6 +499,17 @@ module strumplate() {
         translate([0, 0, -0.01])
             linear_extrude(height = marker_depth + 0.01)
                 markers_2d();
+
+        // 4) living-hinge moats -- ring grooves cut DOWN into the valley
+        //    floor around each bump, thinning the skin there to
+        //    hinge_thickness so each button island can deflect downward on
+        //    its own. Cut from z=hinge_thickness up past the floor so the
+        //    groove opens into the valley recess above. Nothing is removed
+        //    from the z=0 touch face, which stays smooth.
+        if (hinge_on)
+            translate([0, 0, hinge_thickness])
+                linear_extrude(height = moat_depth + recess_depth + 0.5)
+                    button_moats_2d();
     }
 
     // 4) valley bumps -- raised nubs on the valley floor, one per OM-27
