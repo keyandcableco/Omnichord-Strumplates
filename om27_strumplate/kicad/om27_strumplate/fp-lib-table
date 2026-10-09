@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "keyandcable_branding")(type "KiCad")(uri "${KIPRJMOD}/../../../lib/keyandcable_branding.pretty")(options "")(descr "Key & Cable Co. silkscreen logo and QR footprints"))
+)

@@ -12,6 +12,7 @@ This project is an effort to reproduce the strumplate for the Suzuki Omnichord. 
 
 - `om84_strumplate/` — OM-84 work (flex PCB design, gerbers, references)
 - `om27_strumplate/` — OM-27 work (in progress)
+- `lib/keyandcable_branding.pretty/` — silkscreen footprints for the Key & Cable Co. logo lockup and the keyandcable.com QR code, printed on the ribbon tail of both flex PCBs
 
 ### Background
 
@@ -33,6 +34,9 @@ Early stage. The goal is to create drop-in replacements that match the original 
 
 UPDATE (JUNE 25, 2026)
 Version 1.0 of the flex PCB works very well, may be a bit thin at 0.11mm, but certainly works. GERBERS updated, should come back from JLCPCB with no issue during review.
+
+UPDATE (OCTOBER 8, 2026)
+Both flex PCBs now carry the Key & Cable Co. logo, name and a QR code to keyandcable.com in white silkscreen on the ribbon tail, away from the contacts and the gold fingers. F_Silkscreen Gerbers and the production zips are updated.
 
 **OM-27** (see `om27_strumplate/`)
 
