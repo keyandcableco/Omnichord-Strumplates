@@ -36,7 +36,7 @@ UPDATE (JUNE 25, 2026)
 Version 1.0 of the flex PCB works very well, may be a bit thin at 0.11mm, but certainly works. GERBERS updated, should come back from JLCPCB with no issue during review.
 
 UPDATE (OCTOBER 8, 2026)
-Both flex PCBs now carry the Key & Cable Co. logo, name and a QR code to keyandcable.com in white silkscreen on the ribbon tail, away from the contacts and the gold fingers. F_Silkscreen Gerbers and the production zips are updated.
+Both flex PCBs now carry the Key & Cable Co. logo, name and a QR code to keyandcable.com in white silkscreen on the ribbon tail, away from the contacts and the gold fingers. Each tail is also labelled with its model (OM-84 / OM-27) and version, now V1.1 on both (V1.0 was the first fab run; V1.1 adds the 1.25 mm finger pitch fix and the branding). The version is printed from the board's title-block revision (Board Setup > Title Block), so bump it there and re-plot. F_Silkscreen Gerbers and the production zips are updated.
 
 **OM-27** (see `om27_strumplate/`)
 
